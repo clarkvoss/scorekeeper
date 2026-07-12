@@ -1,5 +1,67 @@
 import { computeRoundsTotals } from './db.js';
 
+function showScoreModal(playerName, currentValue, onSave) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const label = document.createElement('label');
+  label.className = 'modal-label';
+  label.textContent = 'Set score for ' + playerName;
+  modal.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'number';
+  input.inputMode = 'numeric';
+  input.value = String(currentValue);
+  modal.appendChild(input);
+
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'modal-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', close);
+  actionsRow.appendChild(cancelBtn);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', save);
+  actionsRow.appendChild(saveBtn);
+
+  modal.appendChild(actionsRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  input.focus();
+  input.select();
+
+  function close() {
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+  }
+
+  function save() {
+    const value = Number(input.value);
+    if (!Number.isFinite(value)) { close(); return; }
+    onSave(value);
+    close();
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter') save();
+  }
+
+  document.addEventListener('keydown', onKeydown);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
 export function renderHome(root, db, actions) {
   root.innerHTML = '';
 
@@ -247,11 +309,9 @@ export function renderActiveGameNormal(root, game, actions) {
       editHint.setAttribute('aria-hidden', 'true');
       scoreBtn.appendChild(editHint);
       scoreBtn.addEventListener('click', () => {
-        const input = prompt('Set exact score for ' + player.name, String(game.scores[player.id]));
-        if (input === null) return;
-        const value = Number(input);
-        if (!Number.isFinite(value)) return;
-        actions.setScore(game.id, player.id, value);
+        showScoreModal(player.name, game.scores[player.id], (value) => {
+          actions.setScore(game.id, player.id, value);
+        });
       });
       row.appendChild(scoreBtn);
 

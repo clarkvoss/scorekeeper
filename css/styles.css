@@ -146,6 +146,41 @@ button.danger, .game-list-item button {
   margin-left: 0.3rem;
 }
 
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100;
+}
+.modal {
+  background: var(--card-bg);
+  border-radius: 0.875rem;
+  padding: 1.25rem;
+  width: 100%;
+  max-width: 320px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.modal-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--fg);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.modal-cancel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--fg);
+}
+
 @media (min-width: 600px) {
   #app { padding: 2rem; }
 }
