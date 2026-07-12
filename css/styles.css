@@ -1,0 +1,151 @@
+:root {
+  --bg: #fafafa;
+  --fg: #1a1a1a;
+  --card-bg: #f4f4f5;
+  --accent: #457b9d;
+  --danger: #e63946;
+  --border: #d9d9de;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121212;
+    --fg: #f0f0f0;
+    --card-bg: #1e1e1e;
+    --accent: #6fa8c9;
+    --danger: #ff6b6b;
+    --border: #333338;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+}
+
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  min-height: 100vh;
+}
+
+button {
+  font-size: 1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  border: none;
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+}
+
+.banner {
+  background: var(--danger);
+  color: white;
+  text-align: center;
+  padding: 0.5rem;
+}
+.banner.hidden { display: none; }
+
+h1, h2 { margin: 0.75rem 0; }
+
+input, select {
+  font-size: 1rem;
+  padding: 0.5rem;
+  width: 100%;
+  margin: 0.4rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--card-bg);
+  color: var(--fg);
+}
+
+.game-list { list-style: none; padding: 0; }
+.game-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+.game-list-item a { color: var(--fg); text-decoration: none; font-size: 1.05rem; }
+
+button.danger, .game-list-item button {
+  background: var(--danger);
+  min-height: 44px;
+}
+
+.player-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: var(--card-bg);
+  border-left: 6px solid var(--accent);
+  border-radius: 0.875rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+.player-row button {
+  min-width: 44px;
+  min-height: 44px;
+}
+.score-display {
+  font-size: 1.3rem;
+  font-weight: bold;
+  background: transparent;
+  color: var(--fg);
+  min-width: 60px;
+}
+
+.rounds-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+}
+.rounds-table th, .rounds-table td {
+  border: 1px solid var(--border);
+  padding: 0.4rem;
+  text-align: center;
+}
+.rounds-table input {
+  width: 100%;
+  min-width: 3rem;
+  text-align: center;
+  margin: 0;
+}
+
+.score-btn {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+}
+.score-btn-plus {
+  background: var(--accent);
+  color: white;
+  border: none;
+}
+.score-edit-hint {
+  font-size: 0.7rem;
+  opacity: 0.55;
+  margin-left: 0.3rem;
+}
+
+@media (min-width: 600px) {
+  #app { padding: 2rem; }
+}
