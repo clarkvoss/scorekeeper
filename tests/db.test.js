@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame, getDealerId, setDealer, advanceDealer, setSortMode, movePlayerOrder, editHistoryEntry, deleteHistoryEntry } from '../js/db.js';
+import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, computeScoreTrend, deleteGame, savePlayerList, finishGame, renameGame, getDealerId, setDealer, advanceDealer, setSortMode, movePlayerOrder, editHistoryEntry, deleteHistoryEntry } from '../js/db.js';
 
 test('createDb returns an empty db with default settings', () => {
   const db = createDb();
@@ -329,4 +329,52 @@ test('editHistoryEntry and deleteHistoryEntry are no-ops for an out-of-range ind
   deleteHistoryEntry(game, 5);
   assert.equal(game.scores[p1.id], 10);
   assert.equal(game.history.length, 1);
+});
+
+test('computeScoreTrend returns cumulative per-event series for normal mode', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  adjustScore(game, p1.id, 10);
+  adjustScore(game, p1.id, 5);
+  adjustScore(game, p2.id, 3);
+  const trend = computeScoreTrend(game);
+  assert.deepEqual(trend[p1.id], [10, 15]);
+  assert.deepEqual(trend[p2.id], [3]);
+});
+
+test('computeScoreTrend omits players with no history entries in normal mode', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  addPlayer(game, 'Bob');
+  adjustScore(game, p1.id, 10);
+  const trend = computeScoreTrend(game);
+  assert.ok(p1.id in trend);
+  assert.equal(Object.keys(trend).length, 1);
+});
+
+test('computeScoreTrend returns cumulative per-round series for rounds mode', () => {
+  const db = createDb();
+  const game = createGame(db, 'Cards', 'rounds');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  const r0 = addRound(game);
+  setRoundScore(game, r0, p1.id, 10);
+  setRoundScore(game, r0, p2.id, 7);
+  const r1 = addRound(game);
+  setRoundScore(game, r1, p1.id, 3);
+  setRoundScore(game, r1, p2.id, 8);
+  const trend = computeScoreTrend(game);
+  assert.deepEqual(trend[p1.id], [10, 13]);
+  assert.deepEqual(trend[p2.id], [7, 15]);
+});
+
+test('computeScoreTrend returns an empty object when rounds mode has no rounds yet', () => {
+  const db = createDb();
+  const game = createGame(db, 'Cards', 'rounds');
+  addPlayer(game, 'Alice');
+  const trend = computeScoreTrend(game);
+  assert.deepEqual(trend, {});
 });

@@ -1,4 +1,4 @@
-import { computeRoundsTotals, getDealerId } from './db.js';
+import { computeRoundsTotals, getDealerId, computeScoreTrend } from './db.js';
 
 function showScoreModal(playerName, currentValue, onSave) {
   const overlay = document.createElement('div');
@@ -849,6 +849,96 @@ export function renderActiveGameRounds(root, game, actions) {
   root.appendChild(backBtn);
 }
 
+function renderTrendChart(root, game) {
+  const trend = computeScoreTrend(game);
+  const playerIds = Object.keys(trend);
+  if (playerIds.length === 0) return;
+
+  const maxLen = Math.max(...playerIds.map(id => trend[id].length));
+  const allValues = playerIds.flatMap(id => trend[id]);
+  const minValue = Math.min(0, ...allValues);
+  const maxValue = Math.max(...allValues);
+  const valueRange = maxValue - minValue || 1;
+
+  const width = 300;
+  const height = 160;
+  const padding = 24;
+
+  function scaleX(i, len) {
+    if (len <= 1) return padding;
+    return padding + (i / (maxLen - 1 || 1)) * (width - padding * 2);
+  }
+  function scaleY(value) {
+    return height - padding - ((value - minValue) / valueRange) * (height - padding * 2);
+  }
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(svgNS, 'svg');
+  svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+  svg.setAttribute('class', 'trend-chart');
+
+  const baseline = document.createElementNS(svgNS, 'line');
+  baseline.setAttribute('x1', String(padding));
+  baseline.setAttribute('y1', String(height - padding));
+  baseline.setAttribute('x2', String(width - padding));
+  baseline.setAttribute('y2', String(height - padding));
+  baseline.setAttribute('class', 'trend-axis');
+  svg.appendChild(baseline);
+
+  const showDirectLabels = playerIds.length <= 4;
+
+  for (const player of game.players) {
+    const points = trend[player.id];
+    if (!points) continue;
+
+    const pointsAttr = points.map((v, i) => `${scaleX(i, points.length)},${scaleY(v)}`).join(' ');
+    const polyline = document.createElementNS(svgNS, 'polyline');
+    polyline.setAttribute('points', pointsAttr);
+    polyline.setAttribute('class', 'trend-line');
+    polyline.setAttribute('stroke', player.color);
+    svg.appendChild(polyline);
+
+    const lastIndex = points.length - 1;
+    const lastX = scaleX(lastIndex, points.length);
+    const lastY = scaleY(points[lastIndex]);
+
+    const dot = document.createElementNS(svgNS, 'circle');
+    dot.setAttribute('cx', String(lastX));
+    dot.setAttribute('cy', String(lastY));
+    dot.setAttribute('r', '4');
+    dot.setAttribute('fill', player.color);
+    svg.appendChild(dot);
+
+    if (showDirectLabels) {
+      const label = document.createElementNS(svgNS, 'text');
+      label.setAttribute('x', String(Math.min(lastX + 6, width - 4)));
+      label.setAttribute('y', String(lastY));
+      label.setAttribute('class', 'trend-label');
+      label.textContent = player.name;
+      svg.appendChild(label);
+    }
+  }
+
+  root.appendChild(svg);
+
+  const legend = document.createElement('div');
+  legend.className = 'trend-legend';
+  for (const player of game.players) {
+    if (!trend[player.id]) continue;
+    const item = document.createElement('span');
+    item.className = 'trend-legend-item';
+    const dot = document.createElement('span');
+    dot.className = 'trend-legend-dot';
+    dot.style.background = player.color;
+    item.appendChild(dot);
+    const name = document.createElement('span');
+    name.textContent = player.name;
+    item.appendChild(name);
+    legend.appendChild(item);
+  }
+  root.appendChild(legend);
+}
+
 export function renderSummary(root, game, actions) {
   root.innerHTML = '';
 
@@ -876,14 +966,18 @@ export function renderSummary(root, game, actions) {
     : computeRoundsTotals(game);
 
   const ranked = [...game.players].sort((a, b) => scoresByPlayer[b.id] - scoresByPlayer[a.id]);
+  const winningScore = ranked.length > 0 ? Math.max(...ranked.map(p => scoresByPlayer[p.id])) : null;
 
   const list = document.createElement('ol');
   for (const player of ranked) {
     const li = document.createElement('li');
-    li.textContent = `${player.name}: ${scoresByPlayer[player.id]}`;
+    const prefix = scoresByPlayer[player.id] === winningScore ? '🏆 ' : '';
+    li.textContent = `${prefix}${player.name}: ${scoresByPlayer[player.id]}`;
     list.appendChild(li);
   }
   root.appendChild(list);
+
+  renderTrendChart(root, game);
 
   const rematchBtn = document.createElement('button');
   rematchBtn.textContent = 'Rematch (same players)';

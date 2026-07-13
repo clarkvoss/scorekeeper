@@ -108,6 +108,32 @@ export function computeRoundsTotals(game) {
   return totals;
 }
 
+export function computeScoreTrend(game) {
+  const series = {};
+  if (game.mode === 'normal') {
+    for (const player of game.players) {
+      const entries = game.history.filter(h => h.playerId === player.id);
+      if (entries.length === 0) continue;
+      let running = 0;
+      series[player.id] = entries.map(e => {
+        running += e.delta;
+        return running;
+      });
+    }
+  } else if (game.rounds.length > 0) {
+    for (const player of game.players) {
+      let running = 0;
+      const points = [];
+      for (const round of game.rounds) {
+        running += round[player.id] || 0;
+        points.push(running);
+      }
+      series[player.id] = points;
+    }
+  }
+  return series;
+}
+
 export function deleteGame(db, gameId) {
   db.games = db.games.filter(g => g.id !== gameId);
 }

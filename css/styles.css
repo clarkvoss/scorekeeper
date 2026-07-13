@@ -381,3 +381,40 @@ button.danger, .game-list-item button {
 .target-badge {
   margin-left: 0.4rem;
 }
+
+.trend-chart {
+  width: 100%;
+  height: auto;
+  margin: 0.5rem 0;
+}
+.trend-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+.trend-line {
+  fill: none;
+  stroke-width: 2;
+}
+.trend-label {
+  font-size: 8px;
+  fill: var(--fg);
+}
+.trend-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin: 0.5rem 0;
+}
+.trend-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+.trend-legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
