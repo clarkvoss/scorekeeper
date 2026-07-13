@@ -1,23 +1,13 @@
 :root {
-  --bg: #fafafa;
-  --fg: #1a1a1a;
-  --card-bg: #f4f4f5;
+  --bg: #1f5c54;
+  --fg: #ffffff;
+  --fg-on-card: #1a1a1a;
+  --card-bg: #ffffff;
   --accent: #457b9d;
   --danger: #e63946;
   --border: #d9d9de;
   --teal: #2d7d74;
   --teal-dark: #1f5c54;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121212;
-    --fg: #f0f0f0;
-    --card-bg: #1e1e1e;
-    --accent: #6fa8c9;
-    --danger: #ff6b6b;
-    --border: #333338;
-  }
 }
 
 * { box-sizing: border-box; }
@@ -64,7 +54,7 @@ input, select {
   border: 1px solid var(--border);
   border-radius: 0.4rem;
   background: var(--card-bg);
-  color: var(--fg);
+  color: var(--fg-on-card);
 }
 
 .game-list { list-style: none; padding: 0; }
@@ -78,7 +68,7 @@ input, select {
   padding: 0.75rem;
   margin-bottom: 0.5rem;
 }
-.game-list-item a { color: var(--fg); text-decoration: none; font-size: 1.05rem; }
+.game-list-item a { color: var(--fg-on-card); text-decoration: none; font-size: 1.05rem; }
 
 button.danger, .game-list-item button {
   background: var(--danger);
@@ -105,7 +95,7 @@ button.danger, .game-list-item button {
   font-size: 1.3rem;
   font-weight: bold;
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-on-card);
   min-width: 60px;
 }
 
@@ -169,7 +159,7 @@ button.danger, .game-list-item button {
 .modal-label {
   display: block;
   margin-bottom: 0.5rem;
-  color: var(--fg);
+  color: var(--fg-on-card);
 }
 .modal-actions {
   display: flex;
@@ -180,7 +170,7 @@ button.danger, .game-list-item button {
 .modal-cancel {
   background: var(--card-bg);
   border: 1px solid var(--border);
-  color: var(--fg);
+  color: var(--fg-on-card);
 }
 
 @media (min-width: 600px) {
@@ -247,7 +237,7 @@ button.danger, .game-list-item button {
 }
 .header-menu-dropdown button {
   background: transparent;
-  color: var(--fg);
+  color: var(--fg-on-card);
   text-align: left;
   padding: 0.5rem;
 }
@@ -276,7 +266,7 @@ button.danger, .game-list-item button {
   font-weight: 600;
 }
 .player-meta {
-  color: var(--fg);
+  color: var(--fg-on-card);
   opacity: 0.55;
   font-size: 0.75rem;
 }
@@ -332,7 +322,7 @@ button.danger, .game-list-item button {
 }
 .keypad-key {
   background: var(--card-bg);
-  color: var(--fg);
+  color: var(--fg-on-card);
   border: 1px solid var(--border);
   font-size: 1.3rem;
   font-weight: 600;
@@ -365,7 +355,7 @@ button.danger, .game-list-item button {
 .round-history-list li {
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border);
-  color: var(--fg);
+  color: var(--fg-on-card);
 }
 .add-points-btn {
   background: var(--card-bg);
