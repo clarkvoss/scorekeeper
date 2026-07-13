@@ -201,7 +201,7 @@ function showRenameModal(currentName, onSave) {
   });
 }
 
-function showRoundHistoryModal(game, player) {
+function showRoundHistoryModal(game, player, actions) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
 
@@ -213,7 +213,11 @@ function showRoundHistoryModal(game, player) {
   label.textContent = player.name + "'s round history";
   modal.appendChild(label);
 
-  const entries = game.history.filter(h => h.playerId === player.id);
+  const entries = [];
+  game.history.forEach((h, index) => {
+    if (h.playerId === player.id) entries.push({ entry: h, index });
+  });
+
   const list = document.createElement('ul');
   list.className = 'round-history-list';
   if (entries.length === 0) {
@@ -221,10 +225,34 @@ function showRoundHistoryModal(game, player) {
     li.textContent = 'No rounds recorded yet.';
     list.appendChild(li);
   } else {
-    entries.forEach((entry, i) => {
+    entries.forEach(({ entry, index }, i) => {
       const li = document.createElement('li');
       const sign = entry.delta >= 0 ? '+' : '';
-      li.textContent = `Round ${i + 1}: ${sign}${entry.delta}`;
+      const roundLabel = document.createElement('span');
+      roundLabel.textContent = `Round ${i + 1}: ${sign}${entry.delta}`;
+      li.appendChild(roundLabel);
+
+      const editBtn = document.createElement('button');
+      editBtn.textContent = 'Edit';
+      editBtn.addEventListener('click', () => {
+        close();
+        showScoreModal(player.name, entry.delta, (newValue) => {
+          actions.editHistoryEntry(game.id, index, newValue);
+        });
+      });
+      li.appendChild(editBtn);
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'danger';
+      deleteBtn.textContent = 'Delete';
+      deleteBtn.addEventListener('click', () => {
+        if (confirm(`Delete this round (${sign}${entry.delta} for ${player.name})?`)) {
+          close();
+          actions.deleteHistoryEntry(game.id, index);
+        }
+      });
+      li.appendChild(deleteBtn);
+
       list.appendChild(li);
     });
   }
@@ -588,14 +616,13 @@ export function renderActiveGameNormal(root, game, actions) {
     root.appendChild(targetSubtitle);
   }
 
-  const sortLabels = { original: 'Sort: Original', desc: 'Sort: High→Low', asc: 'Sort: Low→High' };
-  let sortMode = 'original';
+  const sortLabels = { original: 'Sort: Original', desc: 'Sort: High→Low', asc: 'Sort: Low→High', custom: 'Sort: Custom' };
+  const sortCycle = { original: 'desc', desc: 'asc', asc: 'custom', custom: 'original' };
+  const sortMode = game.sortMode || 'original';
   const sortBtn = document.createElement('button');
   sortBtn.textContent = sortLabels[sortMode];
   sortBtn.addEventListener('click', () => {
-    sortMode = sortMode === 'original' ? 'desc' : sortMode === 'desc' ? 'asc' : 'original';
-    sortBtn.textContent = sortLabels[sortMode];
-    renderRows();
+    actions.setSortMode(game.id, sortCycle[sortMode]);
   });
   root.appendChild(sortBtn);
 
@@ -615,12 +642,19 @@ export function renderActiveGameNormal(root, game, actions) {
       players = [...game.players].sort((a, b) => game.scores[b.id] - game.scores[a.id]);
     } else if (sortMode === 'asc') {
       players = [...game.players].sort((a, b) => game.scores[a.id] - game.scores[b.id]);
+    } else if (sortMode === 'custom') {
+      const orderIds = (game.playerOrder || game.players.map(p => p.id)).filter(id => game.players.some(p => p.id === id));
+      players = orderIds.map(id => game.players.find(p => p.id === id));
     }
 
     for (const player of players) {
       const row = document.createElement('div');
       row.className = 'player-row';
-      row.style.borderLeftColor = player.color;
+      const targetReached = game.targetScore !== null && game.targetScore !== undefined && game.scores[player.id] >= game.targetScore;
+      if (targetReached) {
+        row.classList.add('player-row-target-reached');
+      }
+      row.style.borderLeftColor = targetReached ? '#e9c46a' : player.color;
 
       const avatar = document.createElement('div');
       avatar.className = 'player-avatar';
@@ -649,6 +683,14 @@ export function renderActiveGameNormal(root, game, actions) {
         dealerBadge.className = 'dealer-badge';
         dealerBadge.textContent = 'DEALER';
         nameWrap.appendChild(dealerBadge);
+      }
+
+      if (targetReached) {
+        const targetBadge = document.createElement('span');
+        targetBadge.className = 'target-badge';
+        targetBadge.textContent = '🏆';
+        targetBadge.setAttribute('aria-label', 'Target score reached');
+        nameWrap.appendChild(targetBadge);
       }
 
       row.appendChild(nameWrap);
@@ -689,6 +731,22 @@ export function renderActiveGameNormal(root, game, actions) {
       addPointsBtn.textContent = 'Add Points';
       addPointsBtn.addEventListener('click', () => actions.goAddPoints(game.id, player.id));
       row.appendChild(addPointsBtn);
+
+      if (sortMode === 'custom') {
+        const upBtn = document.createElement('button');
+        upBtn.className = 'score-btn';
+        upBtn.textContent = '↑';
+        upBtn.setAttribute('aria-label', 'Move player up');
+        upBtn.addEventListener('click', () => actions.movePlayerOrder(game.id, player.id, -1));
+        row.appendChild(upBtn);
+
+        const downBtn = document.createElement('button');
+        downBtn.className = 'score-btn';
+        downBtn.textContent = '↓';
+        downBtn.setAttribute('aria-label', 'Move player down');
+        downBtn.addEventListener('click', () => actions.movePlayerOrder(game.id, player.id, 1));
+        row.appendChild(downBtn);
+      }
 
       rowsContainer.appendChild(row);
     }
@@ -866,7 +924,7 @@ export function renderAddPoints(root, game, player, actions) {
   historyBtn.className = 'header-menu';
   historyBtn.textContent = '↻';
   historyBtn.setAttribute('aria-label', 'View round history');
-  historyBtn.addEventListener('click', () => showRoundHistoryModal(game, player));
+  historyBtn.addEventListener('click', () => showRoundHistoryModal(game, player, actions));
   header.appendChild(historyBtn);
 
   root.appendChild(header);

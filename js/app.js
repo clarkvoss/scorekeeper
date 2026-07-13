@@ -1,4 +1,4 @@
-import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame, renameGame, setDealer, advanceDealer } from './db.js';
+import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame, renameGame, setDealer, advanceDealer, setSortMode, movePlayerOrder, editHistoryEntry, deleteHistoryEntry } from './db.js';
 import { loadDb, saveDb } from './storage.js';
 import { renderHome, renderNewGame, renderActiveGameNormal, renderActiveGameRounds, renderSummary, renderAddPoints } from './render.js';
 
@@ -44,6 +44,26 @@ const actions = {
   },
   advanceDealer: (gameId) => {
     advanceDealer(findGame(gameId));
+    persist();
+    route();
+  },
+  setSortMode: (gameId, mode) => {
+    setSortMode(findGame(gameId), mode);
+    persist();
+    route();
+  },
+  movePlayerOrder: (gameId, playerId, direction) => {
+    movePlayerOrder(findGame(gameId), playerId, direction);
+    persist();
+    route();
+  },
+  editHistoryEntry: (gameId, historyIndex, newDelta) => {
+    editHistoryEntry(findGame(gameId), historyIndex, newDelta);
+    persist();
+    route();
+  },
+  deleteHistoryEntry: (gameId, historyIndex) => {
+    deleteHistoryEntry(findGame(gameId), historyIndex);
     persist();
     route();
   },

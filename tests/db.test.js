@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame, getDealerId, setDealer, advanceDealer } from '../js/db.js';
+import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame, getDealerId, setDealer, advanceDealer, setSortMode, movePlayerOrder, editHistoryEntry, deleteHistoryEntry } from '../js/db.js';
 
 test('createDb returns an empty db with default settings', () => {
   const db = createDb();
@@ -259,4 +259,74 @@ test('createGame accepts an explicit targetScore', () => {
   const db = createDb();
   const game = createGame(db, 'Poker Night', 'normal', 100);
   assert.equal(game.targetScore, 100);
+});
+
+test('createGame defaults sortMode to original and playerOrder to null', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  assert.equal(game.sortMode, 'original');
+  assert.equal(game.playerOrder, null);
+});
+
+test('setSortMode updates sortMode and bumps updatedAt', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const before = game.updatedAt;
+  setSortMode(game, 'desc');
+  assert.equal(game.sortMode, 'desc');
+  assert.ok(game.updatedAt >= before);
+});
+
+test('movePlayerOrder initializes playerOrder from players and swaps adjacent entries', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  const p3 = addPlayer(game, 'Carol');
+  movePlayerOrder(game, p2.id, -1);
+  assert.deepEqual(game.playerOrder, [p2.id, p1.id, p3.id]);
+});
+
+test('movePlayerOrder is a no-op at the boundaries', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  movePlayerOrder(game, p1.id, -1);
+  assert.deepEqual(game.playerOrder, [p1.id, p2.id]);
+  movePlayerOrder(game, p2.id, 1);
+  assert.deepEqual(game.playerOrder, [p1.id, p2.id]);
+});
+
+test('editHistoryEntry recalculates the score from the delta difference', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  adjustScore(game, p1.id, 10);
+  adjustScore(game, p1.id, 5);
+  editHistoryEntry(game, 0, 20);
+  assert.equal(game.scores[p1.id], 25);
+  assert.equal(game.history[0].delta, 20);
+});
+
+test('deleteHistoryEntry removes the entry and subtracts its delta', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  adjustScore(game, p1.id, 10);
+  adjustScore(game, p1.id, 5);
+  deleteHistoryEntry(game, 0);
+  assert.equal(game.scores[p1.id], 5);
+  assert.equal(game.history.length, 1);
+});
+
+test('editHistoryEntry and deleteHistoryEntry are no-ops for an out-of-range index', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  adjustScore(game, p1.id, 10);
+  editHistoryEntry(game, 5, 99);
+  deleteHistoryEntry(game, 5);
+  assert.equal(game.scores[p1.id], 10);
+  assert.equal(game.history.length, 1);
 });

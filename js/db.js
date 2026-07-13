@@ -26,7 +26,9 @@ export function createGame(db, name, mode, targetScore = null) {
     rounds: [],
     finished: false,
     dealerId: null,
-    targetScore
+    targetScore,
+    sortMode: 'original',
+    playerOrder: null
   };
   db.games.push(game);
   return game;
@@ -144,4 +146,40 @@ export function advanceDealer(game) {
   if (idx === -1 || game.players.length === 0) return;
   const nextPlayer = game.players[(idx + 1) % game.players.length];
   setDealer(game, nextPlayer.id);
+}
+
+export function setSortMode(game, mode) {
+  game.sortMode = mode;
+  game.updatedAt = Date.now();
+}
+
+export function movePlayerOrder(game, playerId, direction) {
+  if (!game.playerOrder) {
+    game.playerOrder = game.players.map(p => p.id);
+  }
+  const order = game.playerOrder.filter(id => game.players.some(p => p.id === id));
+  const idx = order.indexOf(playerId);
+  if (idx === -1) return;
+  const newIdx = idx + direction;
+  if (newIdx < 0 || newIdx >= order.length) return;
+  [order[idx], order[newIdx]] = [order[newIdx], order[idx]];
+  game.playerOrder = order;
+  game.updatedAt = Date.now();
+}
+
+export function editHistoryEntry(game, historyIndex, newDelta) {
+  const entry = game.history[historyIndex];
+  if (!entry) return;
+  const diff = newDelta - entry.delta;
+  game.scores[entry.playerId] = (game.scores[entry.playerId] || 0) + diff;
+  entry.delta = newDelta;
+  game.updatedAt = Date.now();
+}
+
+export function deleteHistoryEntry(game, historyIndex) {
+  const entry = game.history[historyIndex];
+  if (!entry) return;
+  game.scores[entry.playerId] = (game.scores[entry.playerId] || 0) - entry.delta;
+  game.history.splice(historyIndex, 1);
+  game.updatedAt = Date.now();
 }
