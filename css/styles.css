@@ -280,3 +280,98 @@ button.danger, .game-list-item button {
   opacity: 0.55;
   font-size: 0.75rem;
 }
+
+.dealer-badge {
+  display: inline-block;
+  background: var(--teal);
+  color: white;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  margin-left: 0.4rem;
+  vertical-align: middle;
+}
+
+.keypad-round {
+  text-align: center;
+  color: var(--fg);
+  opacity: 0.6;
+  margin: 0.5rem 0 0 0;
+}
+.keypad-display {
+  text-align: center;
+  font-size: 3rem;
+  font-weight: 700;
+  color: var(--fg);
+  margin: 0.25rem 0;
+  min-height: 3.5rem;
+}
+.keypad-total {
+  text-align: center;
+  color: var(--fg);
+  opacity: 0.6;
+  margin-bottom: 0.75rem;
+}
+.keypad-history-actions {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 0.5rem;
+  margin-bottom: 0.4rem;
+}
+.keypad-history-actions button {
+  background: transparent;
+  color: var(--teal);
+  font-weight: 600;
+}
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.5rem;
+  padding: 0.5rem;
+}
+.keypad-key {
+  background: var(--card-bg);
+  color: var(--fg);
+  border: 1px solid var(--border);
+  font-size: 1.3rem;
+  font-weight: 600;
+  min-height: 56px;
+  border-radius: 0.875rem;
+}
+.keypad-key.keypad-backspace {
+  background: var(--danger);
+  color: white;
+  border: none;
+}
+.keypad-footer {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+.keypad-footer button {
+  flex: 1;
+}
+.keypad-footer .keypad-save {
+  background: var(--teal);
+}
+.round-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0;
+  max-height: 240px;
+  overflow-y: auto;
+}
+.round-history-list li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border);
+  color: var(--fg);
+}
+.add-points-btn {
+  background: var(--card-bg);
+  color: var(--teal);
+  border: 1px solid var(--teal);
+  font-size: 0.75rem;
+  padding: 0.3rem 0.5rem;
+  min-height: 44px;
+}

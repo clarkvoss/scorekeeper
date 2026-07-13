@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame } from '../js/db.js';
+import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame, getDealerId, setDealer, advanceDealer } from '../js/db.js';
 
 test('createDb returns an empty db with default settings', () => {
   const db = createDb();
@@ -196,4 +196,55 @@ test('renameGame updates the game name and bumps updatedAt', () => {
   renameGame(game, 'Poker Night 2');
   assert.equal(game.name, 'Poker Night 2');
   assert.ok(game.updatedAt >= before);
+});
+
+test('createGame defaults dealerId to null', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  assert.equal(game.dealerId, null);
+});
+
+test('getDealerId falls back to the first player when dealerId is unset', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  addPlayer(game, 'Bob');
+  assert.equal(getDealerId(game), p1.id);
+});
+
+test('setDealer sets dealerId and bumps updatedAt', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  const before = game.updatedAt;
+  setDealer(game, p2.id);
+  assert.equal(getDealerId(game), p2.id);
+  assert.ok(game.updatedAt >= before);
+});
+
+test('advanceDealer moves to the next player and wraps around', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  const p3 = addPlayer(game, 'Carol');
+  assert.equal(getDealerId(game), p1.id);
+  advanceDealer(game);
+  assert.equal(getDealerId(game), p2.id);
+  advanceDealer(game);
+  assert.equal(getDealerId(game), p3.id);
+  advanceDealer(game);
+  assert.equal(getDealerId(game), p1.id);
+});
+
+test('advanceDealer advances from wherever the dealer actually is after a manual reassignment', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  const p3 = addPlayer(game, 'Carol');
+  setDealer(game, p3.id);
+  advanceDealer(game);
+  assert.equal(getDealerId(game), p1.id);
 });

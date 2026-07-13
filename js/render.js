@@ -1,4 +1,4 @@
-import { computeRoundsTotals } from './db.js';
+import { computeRoundsTotals, getDealerId } from './db.js';
 
 function showScoreModal(playerName, currentValue, onSave) {
   const overlay = document.createElement('div');
@@ -62,7 +62,7 @@ function showScoreModal(playerName, currentValue, onSave) {
   });
 }
 
-function renderHeader(root, { title, showBack = false, showMenu = false, onBack, onDelete, onRename }) {
+function renderHeader(root, { title, showBack = false, showMenu = false, onBack, onDelete, onRename, onChangeDealer }) {
   const header = document.createElement('div');
   header.className = 'app-header';
 
@@ -104,6 +104,16 @@ function renderHeader(root, { title, showBack = false, showMenu = false, onBack,
       onRename();
     });
     dropdown.appendChild(renameItem);
+
+    if (onChangeDealer) {
+      const dealerItem = document.createElement('button');
+      dealerItem.textContent = 'Change Dealer';
+      dealerItem.addEventListener('click', () => {
+        dropdown.classList.add('hidden');
+        onChangeDealer();
+      });
+      dropdown.appendChild(dealerItem);
+    }
 
     const deleteItem = document.createElement('button');
     deleteItem.className = 'danger';
@@ -183,6 +193,117 @@ function showRenameModal(currentName, onSave) {
   function onKeydown(e) {
     if (e.key === 'Escape') close();
     if (e.key === 'Enter') save();
+  }
+
+  document.addEventListener('keydown', onKeydown);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
+function showRoundHistoryModal(game, player) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const label = document.createElement('label');
+  label.className = 'modal-label';
+  label.textContent = player.name + "'s round history";
+  modal.appendChild(label);
+
+  const entries = game.history.filter(h => h.playerId === player.id);
+  const list = document.createElement('ul');
+  list.className = 'round-history-list';
+  if (entries.length === 0) {
+    const li = document.createElement('li');
+    li.textContent = 'No rounds recorded yet.';
+    list.appendChild(li);
+  } else {
+    entries.forEach((entry, i) => {
+      const li = document.createElement('li');
+      const sign = entry.delta >= 0 ? '+' : '';
+      li.textContent = `Round ${i + 1}: ${sign}${entry.delta}`;
+      list.appendChild(li);
+    });
+  }
+  modal.appendChild(list);
+
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'modal-actions';
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = 'Close';
+  closeBtn.addEventListener('click', close);
+  actionsRow.appendChild(closeBtn);
+
+  modal.appendChild(actionsRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  function close() {
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
+  }
+
+  document.addEventListener('keydown', onKeydown);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
+function showChangeDealerModal(game, onSelect) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const label = document.createElement('label');
+  label.className = 'modal-label';
+  label.textContent = 'Change dealer';
+  modal.appendChild(label);
+
+  const list = document.createElement('ul');
+  list.className = 'round-history-list';
+  for (const player of game.players) {
+    const li = document.createElement('li');
+    const btn = document.createElement('button');
+    btn.textContent = player.name;
+    btn.addEventListener('click', () => {
+      onSelect(player.id);
+      close();
+    });
+    li.appendChild(btn);
+    list.appendChild(li);
+  }
+  modal.appendChild(list);
+
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'modal-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', close);
+  actionsRow.appendChild(cancelBtn);
+
+  modal.appendChild(actionsRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  function close() {
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
   }
 
   document.addEventListener('keydown', onKeydown);
@@ -393,6 +514,9 @@ export function renderActiveGameNormal(root, game, actions) {
     },
     onRename: () => {
       showRenameModal(game.name, (newName) => actions.renameGame(game.id, newName));
+    },
+    onChangeDealer: () => {
+      showChangeDealerModal(game, (playerId) => actions.setDealer(game.id, playerId));
     }
   });
 
@@ -452,6 +576,13 @@ export function renderActiveGameNormal(root, game, actions) {
         nameWrap.appendChild(meta);
       }
 
+      if (getDealerId(game) === player.id) {
+        const dealerBadge = document.createElement('span');
+        dealerBadge.className = 'dealer-badge';
+        dealerBadge.textContent = 'DEALER';
+        nameWrap.appendChild(dealerBadge);
+      }
+
       row.appendChild(nameWrap);
 
       const minusBtn = document.createElement('button');
@@ -484,6 +615,12 @@ export function renderActiveGameNormal(root, game, actions) {
       plusBtn.setAttribute('aria-label', 'Increase score');
       plusBtn.addEventListener('click', () => actions.adjustScore(game.id, player.id, 1));
       row.appendChild(plusBtn);
+
+      const addPointsBtn = document.createElement('button');
+      addPointsBtn.className = 'add-points-btn';
+      addPointsBtn.textContent = 'Add Points';
+      addPointsBtn.addEventListener('click', () => actions.goAddPoints(game.id, player.id));
+      row.appendChild(addPointsBtn);
 
       rowsContainer.appendChild(row);
     }
@@ -631,4 +768,159 @@ export function renderSummary(root, game, actions) {
   backBtn.textContent = 'Back to Home';
   backBtn.addEventListener('click', () => actions.goHome());
   root.appendChild(backBtn);
+}
+
+export function renderAddPoints(root, game, player, actions) {
+  root.innerHTML = '';
+
+  const header = document.createElement('div');
+  header.className = 'app-header';
+
+  const backBtn = document.createElement('button');
+  backBtn.className = 'header-back';
+  backBtn.textContent = '‹';
+  backBtn.setAttribute('aria-label', 'Back to game');
+  backBtn.addEventListener('click', () => actions.goActiveGame(game.id));
+  header.appendChild(backBtn);
+
+  const titleEl = document.createElement('h1');
+  titleEl.className = 'header-title';
+  titleEl.textContent = player.name;
+  if (getDealerId(game) === player.id) {
+    const badge = document.createElement('span');
+    badge.className = 'dealer-badge';
+    badge.textContent = 'DEALER';
+    titleEl.appendChild(badge);
+  }
+  header.appendChild(titleEl);
+
+  const historyBtn = document.createElement('button');
+  historyBtn.className = 'header-menu';
+  historyBtn.textContent = '↻';
+  historyBtn.setAttribute('aria-label', 'View round history');
+  historyBtn.addEventListener('click', () => showRoundHistoryModal(game, player));
+  header.appendChild(historyBtn);
+
+  root.appendChild(header);
+
+  const info = playerRoundInfo(game, player.id);
+  const nextRound = info ? info.round + 1 : 1;
+
+  const roundLabel = document.createElement('p');
+  roundLabel.className = 'keypad-round';
+  roundLabel.textContent = `Round ${nextRound}`;
+  root.appendChild(roundLabel);
+
+  const display = document.createElement('div');
+  display.className = 'keypad-display';
+  root.appendChild(display);
+
+  const totalLabel = document.createElement('p');
+  totalLabel.className = 'keypad-total';
+  root.appendChild(totalLabel);
+
+  let typed = '';
+  let negative = false;
+  let undoStack = [JSON.stringify({ typed: '', negative: false })];
+  let undoIndex = 0;
+
+  function currentValueText() {
+    return (negative ? '-' : '') + (typed || '0');
+  }
+
+  function renderDisplay() {
+    display.textContent = currentValueText();
+    totalLabel.textContent = `Total Score: ${game.scores[player.id]}`;
+  }
+  renderDisplay();
+
+  function pushState() {
+    undoStack = undoStack.slice(0, undoIndex + 1);
+    undoStack.push(JSON.stringify({ typed, negative }));
+    undoIndex = undoStack.length - 1;
+  }
+
+  function restoreState(json) {
+    const state = JSON.parse(json);
+    typed = state.typed;
+    negative = state.negative;
+    renderDisplay();
+  }
+
+  const historyActions = document.createElement('div');
+  historyActions.className = 'keypad-history-actions';
+
+  const undoBtn = document.createElement('button');
+  undoBtn.textContent = 'Undo';
+  undoBtn.addEventListener('click', () => {
+    if (undoIndex > 0) {
+      undoIndex -= 1;
+      restoreState(undoStack[undoIndex]);
+    }
+  });
+  historyActions.appendChild(undoBtn);
+
+  const redoBtn = document.createElement('button');
+  redoBtn.textContent = 'Redo';
+  redoBtn.addEventListener('click', () => {
+    if (undoIndex < undoStack.length - 1) {
+      undoIndex += 1;
+      restoreState(undoStack[undoIndex]);
+    }
+  });
+  historyActions.appendChild(redoBtn);
+
+  root.appendChild(historyActions);
+
+  const keypad = document.createElement('div');
+  keypad.className = 'keypad';
+
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '±', '0', '⌫'];
+  for (const key of keys) {
+    const btn = document.createElement('button');
+    btn.className = 'keypad-key' + (key === '⌫' ? ' keypad-backspace' : '');
+    btn.textContent = key;
+    btn.addEventListener('click', () => {
+      if (key === '±') {
+        negative = !negative;
+      } else if (key === '⌫') {
+        typed = typed.slice(0, -1);
+      } else {
+        typed += key;
+      }
+      pushState();
+      renderDisplay();
+    });
+    keypad.appendChild(btn);
+  }
+  root.appendChild(keypad);
+
+  const footer = document.createElement('div');
+  footer.className = 'keypad-footer';
+
+  const saveBtn = document.createElement('button');
+  saveBtn.className = 'keypad-save';
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', () => {
+    const value = Number(currentValueText());
+    if (Number.isFinite(value)) {
+      actions.adjustScore(game.id, player.id, value);
+    }
+  });
+  footer.appendChild(saveBtn);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.textContent = 'Next Player';
+  nextBtn.addEventListener('click', () => {
+    const idx = game.players.findIndex(p => p.id === player.id);
+    const nextIndex = (idx + 1) % game.players.length;
+    if (nextIndex === 0) {
+      actions.advanceDealer(game.id);
+    }
+    const nextPlayer = game.players[nextIndex];
+    actions.goAddPoints(game.id, nextPlayer.id);
+  });
+  footer.appendChild(nextBtn);
+
+  root.appendChild(footer);
 }

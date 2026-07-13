@@ -1,6 +1,6 @@
-import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame, renameGame } from './db.js';
+import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame, renameGame, setDealer, advanceDealer } from './db.js';
 import { loadDb, saveDb } from './storage.js';
-import { renderHome, renderNewGame, renderActiveGameNormal, renderActiveGameRounds, renderSummary } from './render.js';
+import { renderHome, renderNewGame, renderActiveGameNormal, renderActiveGameRounds, renderSummary, renderAddPoints } from './render.js';
 
 const root = document.getElementById('app');
 const banner = document.getElementById('banner');
@@ -25,6 +25,8 @@ function findGame(gameId) {
 const actions = {
   goHome: () => { location.hash = '#/'; },
   goNewGame: () => { location.hash = '#/new'; },
+  goActiveGame: (gameId) => { location.hash = `#/game/${gameId}`; },
+  goAddPoints: (gameId, playerId) => { location.hash = `#/game/${gameId}/player/${playerId}`; },
   deleteGame: (gameId) => {
     deleteGame(db, gameId);
     persist();
@@ -32,6 +34,16 @@ const actions = {
   },
   renameGame: (gameId, newName) => {
     renameGame(findGame(gameId), newName);
+    persist();
+    route();
+  },
+  setDealer: (gameId, playerId) => {
+    setDealer(findGame(gameId), playerId);
+    persist();
+    route();
+  },
+  advanceDealer: (gameId) => {
+    advanceDealer(findGame(gameId));
     persist();
     route();
   },
@@ -109,6 +121,15 @@ function route() {
     const game = findGame(summaryMatch[1]);
     if (game) {
       renderSummary(root, game, actions);
+      return;
+    }
+  }
+  const addPointsMatch = hash.match(/^#\/game\/([^/]+)\/player\/([^/]+)$/);
+  if (addPointsMatch) {
+    const game = findGame(addPointsMatch[1]);
+    const player = game && game.players.find(p => p.id === addPointsMatch[2]);
+    if (game && player && game.mode === 'normal') {
+      renderAddPoints(root, game, player, actions);
       return;
     }
   }

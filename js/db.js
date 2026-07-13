@@ -24,7 +24,8 @@ export function createGame(db, name, mode) {
     scores: {},
     history: [],
     rounds: [],
-    finished: false
+    finished: false,
+    dealerId: null
   };
   db.games.push(game);
   return game;
@@ -125,4 +126,21 @@ export function finishGame(game) {
 export function renameGame(game, newName) {
   game.name = newName;
   game.updatedAt = Date.now();
+}
+
+export function getDealerId(game) {
+  return game.dealerId || (game.players[0] && game.players[0].id);
+}
+
+export function setDealer(game, playerId) {
+  game.dealerId = playerId;
+  game.updatedAt = Date.now();
+}
+
+export function advanceDealer(game) {
+  const currentId = getDealerId(game);
+  const idx = game.players.findIndex(p => p.id === currentId);
+  if (idx === -1 || game.players.length === 0) return;
+  const nextPlayer = game.players[(idx + 1) % game.players.length];
+  setDealer(game, nextPlayer.id);
 }
