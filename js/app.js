@@ -1,4 +1,4 @@
-import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame } from './db.js';
+import { createDb, deleteGame, createGame, addPlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, savePlayerList, finishGame, renameGame } from './db.js';
 import { loadDb, saveDb } from './storage.js';
 import { renderHome, renderNewGame, renderActiveGameNormal, renderActiveGameRounds, renderSummary } from './render.js';
 
@@ -27,6 +27,11 @@ const actions = {
   goNewGame: () => { location.hash = '#/new'; },
   deleteGame: (gameId) => {
     deleteGame(db, gameId);
+    persist();
+    route();
+  },
+  renameGame: (gameId, newName) => {
+    renameGame(findGame(gameId), newName);
     persist();
     route();
   },

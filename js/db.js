@@ -1,4 +1,5 @@
 import { nextColor } from './colors.js';
+import { nextEmoji } from './emojis.js';
 
 export function createDb() {
   return {
@@ -29,11 +30,12 @@ export function createGame(db, name, mode) {
   return game;
 }
 
-export function addPlayer(game, name, color) {
+export function addPlayer(game, name, color, emoji) {
   const player = {
     id: makeId(),
     name,
-    color: color || nextColor(game.players.length)
+    color: color || nextColor(game.players.length),
+    emoji: emoji || nextEmoji(game.players.length)
   };
   game.players.push(player);
   if (game.mode === 'normal') {
@@ -117,5 +119,10 @@ export function savePlayerList(db, name, players) {
 
 export function finishGame(game) {
   game.finished = true;
+  game.updatedAt = Date.now();
+}
+
+export function renameGame(game, newName) {
+  game.name = newName;
   game.updatedAt = Date.now();
 }

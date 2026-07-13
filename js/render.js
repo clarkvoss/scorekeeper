@@ -62,12 +62,139 @@ function showScoreModal(playerName, currentValue, onSave) {
   });
 }
 
+function renderHeader(root, { title, showBack = false, showMenu = false, onBack, onDelete, onRename }) {
+  const header = document.createElement('div');
+  header.className = 'app-header';
+
+  if (showBack) {
+    const backBtn = document.createElement('button');
+    backBtn.className = 'header-back';
+    backBtn.textContent = '‹';
+    backBtn.setAttribute('aria-label', 'Back to Home');
+    backBtn.addEventListener('click', onBack);
+    header.appendChild(backBtn);
+  } else {
+    const spacer = document.createElement('span');
+    spacer.className = 'header-spacer';
+    header.appendChild(spacer);
+  }
+
+  const titleEl = document.createElement('h1');
+  titleEl.className = 'header-title';
+  titleEl.textContent = title;
+  header.appendChild(titleEl);
+
+  if (showMenu) {
+    const menuWrap = document.createElement('div');
+    menuWrap.className = 'header-menu-wrap';
+
+    const menuBtn = document.createElement('button');
+    menuBtn.className = 'header-menu';
+    menuBtn.textContent = '⋮';
+    menuBtn.setAttribute('aria-label', 'Game menu');
+    menuWrap.appendChild(menuBtn);
+
+    const dropdown = document.createElement('div');
+    dropdown.className = 'header-menu-dropdown hidden';
+
+    const renameItem = document.createElement('button');
+    renameItem.textContent = 'Rename Game';
+    renameItem.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      onRename();
+    });
+    dropdown.appendChild(renameItem);
+
+    const deleteItem = document.createElement('button');
+    deleteItem.className = 'danger';
+    deleteItem.textContent = 'Delete Game';
+    deleteItem.addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      onDelete();
+    });
+    dropdown.appendChild(deleteItem);
+
+    menuBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      dropdown.classList.toggle('hidden');
+    });
+
+    menuWrap.appendChild(dropdown);
+    header.appendChild(menuWrap);
+  } else {
+    const spacer = document.createElement('span');
+    spacer.className = 'header-spacer';
+    header.appendChild(spacer);
+  }
+
+  root.appendChild(header);
+}
+
+function showRenameModal(currentName, onSave) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const modal = document.createElement('div');
+  modal.className = 'modal';
+
+  const label = document.createElement('label');
+  label.className = 'modal-label';
+  label.textContent = 'Rename game';
+  modal.appendChild(label);
+
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = currentName;
+  modal.appendChild(input);
+
+  const actionsRow = document.createElement('div');
+  actionsRow.className = 'modal-actions';
+
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'modal-cancel';
+  cancelBtn.textContent = 'Cancel';
+  cancelBtn.addEventListener('click', close);
+  actionsRow.appendChild(cancelBtn);
+
+  const saveBtn = document.createElement('button');
+  saveBtn.textContent = 'Save';
+  saveBtn.addEventListener('click', save);
+  actionsRow.appendChild(saveBtn);
+
+  modal.appendChild(actionsRow);
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  input.focus();
+  input.select();
+
+  function close() {
+    document.removeEventListener('keydown', onKeydown);
+    overlay.remove();
+  }
+
+  function save() {
+    const value = input.value.trim();
+    if (!value) { close(); return; }
+    onSave(value);
+    close();
+  }
+
+  function onKeydown(e) {
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter') save();
+  }
+
+  document.addEventListener('keydown', onKeydown);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) close();
+  });
+}
+
 export function renderHome(root, db, actions) {
   root.innerHTML = '';
 
-  const heading = document.createElement('h1');
-  heading.textContent = 'Scorekeeper';
-  root.appendChild(heading);
+  renderHeader(root, { title: 'Scorekeeper' });
 
   const newGameBtn = document.createElement('button');
   newGameBtn.textContent = 'New Game';
@@ -135,9 +262,7 @@ export function renderNewGame(root, db, actions) {
   let draftPlayers = [];
   let mode = 'normal';
 
-  const heading = document.createElement('h1');
-  heading.textContent = 'New Game';
-  root.appendChild(heading);
+  renderHeader(root, { title: 'New Game', showBack: true, onBack: () => actions.goHome() });
 
   const nameInput = document.createElement('input');
   nameInput.placeholder = 'Game name';
@@ -246,12 +371,30 @@ export function renderNewGame(root, db, actions) {
   root.appendChild(backBtn);
 }
 
+function playerRoundInfo(game, playerId) {
+  const entries = game.history.filter(h => h.playerId === playerId);
+  if (entries.length === 0) return null;
+  const last = entries[entries.length - 1];
+  return { round: entries.length, last: last.delta };
+}
+
 export function renderActiveGameNormal(root, game, actions) {
   root.innerHTML = '';
 
-  const heading = document.createElement('h1');
-  heading.textContent = game.name;
-  root.appendChild(heading);
+  renderHeader(root, {
+    title: game.name,
+    showBack: true,
+    showMenu: true,
+    onBack: () => actions.goHome(),
+    onDelete: () => {
+      if (confirm(`Delete "${game.name}"? This cannot be undone.`)) {
+        actions.deleteGame(game.id);
+      }
+    },
+    onRename: () => {
+      showRenameModal(game.name, (newName) => actions.renameGame(game.id, newName));
+    }
+  });
 
   const sortLabels = { original: 'Sort: Original', desc: 'Sort: High→Low', asc: 'Sort: Low→High' };
   let sortMode = 'original';
@@ -287,9 +430,29 @@ export function renderActiveGameNormal(root, game, actions) {
       row.className = 'player-row';
       row.style.borderLeftColor = player.color;
 
+      const avatar = document.createElement('div');
+      avatar.className = 'player-avatar';
+      avatar.style.background = player.color + '33';
+      avatar.textContent = player.emoji || '🙂';
+      row.appendChild(avatar);
+
+      const nameWrap = document.createElement('div');
+      nameWrap.className = 'player-namewrap';
+
       const name = document.createElement('span');
+      name.className = 'player-name';
       name.textContent = player.name;
-      row.appendChild(name);
+      nameWrap.appendChild(name);
+
+      const info = playerRoundInfo(game, player.id);
+      if (info) {
+        const meta = document.createElement('span');
+        meta.className = 'player-meta';
+        meta.textContent = `Round ${info.round}, Last: ${info.last}`;
+        nameWrap.appendChild(meta);
+      }
+
+      row.appendChild(nameWrap);
 
       const minusBtn = document.createElement('button');
       minusBtn.className = 'score-btn';
@@ -341,9 +504,20 @@ export function renderActiveGameNormal(root, game, actions) {
 export function renderActiveGameRounds(root, game, actions) {
   root.innerHTML = '';
 
-  const heading = document.createElement('h1');
-  heading.textContent = game.name;
-  root.appendChild(heading);
+  renderHeader(root, {
+    title: game.name,
+    showBack: true,
+    showMenu: true,
+    onBack: () => actions.goHome(),
+    onDelete: () => {
+      if (confirm(`Delete "${game.name}"? This cannot be undone.`)) {
+        actions.deleteGame(game.id);
+      }
+    },
+    onRename: () => {
+      showRenameModal(game.name, (newName) => actions.renameGame(game.id, newName));
+    }
+  });
 
   const table = document.createElement('table');
   table.className = 'rounds-table';
@@ -415,9 +589,24 @@ export function renderActiveGameRounds(root, game, actions) {
 export function renderSummary(root, game, actions) {
   root.innerHTML = '';
 
-  const heading = document.createElement('h1');
-  heading.textContent = game.name + ' — Final Standings';
-  root.appendChild(heading);
+  renderHeader(root, {
+    title: game.name,
+    showBack: true,
+    showMenu: true,
+    onBack: () => actions.goHome(),
+    onDelete: () => {
+      if (confirm(`Delete "${game.name}"? This cannot be undone.`)) {
+        actions.deleteGame(game.id);
+      }
+    },
+    onRename: () => {
+      showRenameModal(game.name, (newName) => actions.renameGame(game.id, newName));
+    }
+  });
+
+  const subheading = document.createElement('h2');
+  subheading.textContent = 'Final Standings';
+  root.appendChild(subheading);
 
   const scoresByPlayer = game.mode === 'normal'
     ? game.scores

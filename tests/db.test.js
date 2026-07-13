@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame } from '../js/db.js';
+import { createDb, createGame, addPlayer, removePlayer, adjustScore, setScore, undo, addRound, setRoundScore, deleteRound, computeRoundsTotals, deleteGame, savePlayerList, finishGame, renameGame } from '../js/db.js';
 
 test('createDb returns an empty db with default settings', () => {
   const db = createDb();
@@ -170,5 +170,30 @@ test('finishGame marks a game as finished and bumps updatedAt', () => {
   const before = game.updatedAt;
   finishGame(game);
   assert.equal(game.finished, true);
+  assert.ok(game.updatedAt >= before);
+});
+
+test('addPlayer assigns a round-robin emoji', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice');
+  const p2 = addPlayer(game, 'Bob');
+  assert.ok(p1.emoji);
+  assert.notEqual(p1.emoji, p2.emoji);
+});
+
+test('addPlayer respects an explicit emoji override', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const p1 = addPlayer(game, 'Alice', null, '🐙');
+  assert.equal(p1.emoji, '🐙');
+});
+
+test('renameGame updates the game name and bumps updatedAt', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  const before = game.updatedAt;
+  renameGame(game, 'Poker Night 2');
+  assert.equal(game.name, 'Poker Night 2');
   assert.ok(game.updatedAt >= before);
 });
