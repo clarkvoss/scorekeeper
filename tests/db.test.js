@@ -248,3 +248,15 @@ test('advanceDealer advances from wherever the dealer actually is after a manual
   advanceDealer(game);
   assert.equal(getDealerId(game), p1.id);
 });
+
+test('createGame defaults targetScore to null', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal');
+  assert.equal(game.targetScore, null);
+});
+
+test('createGame accepts an explicit targetScore', () => {
+  const db = createDb();
+  const game = createGame(db, 'Poker Night', 'normal', 100);
+  assert.equal(game.targetScore, 100);
+});

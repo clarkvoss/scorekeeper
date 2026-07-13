@@ -379,117 +379,178 @@ export function renderHome(root, db, actions) {
 }
 
 export function renderNewGame(root, db, actions) {
-  root.innerHTML = '';
   let draftPlayers = [];
   let mode = 'normal';
+  let targetScore = null;
+  let gameName = 'Game Night';
+  let step = 'form';
 
-  renderHeader(root, { title: 'New Game', showBack: true, onBack: () => actions.goHome() });
-
-  const nameInput = document.createElement('input');
-  nameInput.placeholder = 'Game name';
-  nameInput.value = 'Game Night';
-  root.appendChild(nameInput);
-
-  const modeSelect = document.createElement('select');
-  modeSelect.innerHTML = `
-    <option value="normal">Normal (running total)</option>
-    <option value="rounds">Rounds (per-round table)</option>
-  `;
-  modeSelect.addEventListener('change', () => { mode = modeSelect.value; });
-  root.appendChild(modeSelect);
-
-  if (db.savedPlayerLists.length > 0) {
-    const loadSelect = document.createElement('select');
-
-    const placeholderOption = document.createElement('option');
-    placeholderOption.value = '';
-    placeholderOption.textContent = 'Load saved player list...';
-    loadSelect.appendChild(placeholderOption);
-
-    db.savedPlayerLists.forEach((list, i) => {
-      const opt = document.createElement('option');
-      opt.value = String(i);
-      opt.textContent = list.name;
-      loadSelect.appendChild(opt);
-    });
-
-    loadSelect.addEventListener('change', () => {
-      if (loadSelect.value === '') return;
-      const list = db.savedPlayerLists[Number(loadSelect.value)];
-      draftPlayers = list.players.map(p => ({ name: p.name, color: p.color }));
-      renderPlayerList();
-    });
-    root.appendChild(loadSelect);
-  }
-
-  const playerListEl = document.createElement('ul');
-  root.appendChild(playerListEl);
-
-  function renderPlayerList() {
-    playerListEl.innerHTML = '';
-    for (const [i, p] of draftPlayers.entries()) {
-      const li = document.createElement('li');
-      li.textContent = p.name + ' ';
-      const removeBtn = document.createElement('button');
-      removeBtn.textContent = 'Remove';
-      removeBtn.addEventListener('click', () => {
-        draftPlayers.splice(i, 1);
-        renderPlayerList();
-      });
-      li.appendChild(removeBtn);
-      playerListEl.appendChild(li);
+  function renderStep() {
+    if (step === 'form') {
+      renderFormStep();
+    } else {
+      renderConfirmStep();
     }
   }
 
-  const playerNameInput = document.createElement('input');
-  playerNameInput.placeholder = 'Player name';
-  root.appendChild(playerNameInput);
+  function renderFormStep() {
+    root.innerHTML = '';
+    renderHeader(root, { title: 'New Game', showBack: true, onBack: () => actions.goHome() });
 
-  const addPlayerBtn = document.createElement('button');
-  addPlayerBtn.textContent = 'Add Player';
-  addPlayerBtn.addEventListener('click', () => {
-    const name = playerNameInput.value.trim();
-    if (!name) return;
-    draftPlayers.push({ name, color: null });
-    playerNameInput.value = '';
+    const nameInput = document.createElement('input');
+    nameInput.placeholder = 'Game name';
+    nameInput.value = gameName;
+    root.appendChild(nameInput);
+
+    const modeSelect = document.createElement('select');
+    modeSelect.innerHTML = `
+      <option value="normal">Normal (running total)</option>
+      <option value="rounds">Rounds (per-round table)</option>
+    `;
+    modeSelect.value = mode;
+    modeSelect.addEventListener('change', () => { mode = modeSelect.value; });
+    root.appendChild(modeSelect);
+
+    const targetScoreInput = document.createElement('input');
+    targetScoreInput.type = 'number';
+    targetScoreInput.placeholder = 'Target score (optional)';
+    targetScoreInput.value = targetScore === null ? '' : String(targetScore);
+    root.appendChild(targetScoreInput);
+
+    if (db.savedPlayerLists.length > 0) {
+      const loadSelect = document.createElement('select');
+
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = 'Load saved player list...';
+      loadSelect.appendChild(placeholderOption);
+
+      db.savedPlayerLists.forEach((list, i) => {
+        const opt = document.createElement('option');
+        opt.value = String(i);
+        opt.textContent = list.name;
+        loadSelect.appendChild(opt);
+      });
+
+      loadSelect.addEventListener('change', () => {
+        if (loadSelect.value === '') return;
+        const list = db.savedPlayerLists[Number(loadSelect.value)];
+        draftPlayers = list.players.map(p => ({ name: p.name, color: p.color }));
+        renderPlayerList();
+      });
+      root.appendChild(loadSelect);
+    }
+
+    const playerListEl = document.createElement('ul');
+    root.appendChild(playerListEl);
+
+    function renderPlayerList() {
+      playerListEl.innerHTML = '';
+      for (const [i, p] of draftPlayers.entries()) {
+        const li = document.createElement('li');
+        li.textContent = p.name + ' ';
+        const removeBtn = document.createElement('button');
+        removeBtn.textContent = 'Remove';
+        removeBtn.addEventListener('click', () => {
+          draftPlayers.splice(i, 1);
+          renderPlayerList();
+        });
+        li.appendChild(removeBtn);
+        playerListEl.appendChild(li);
+      }
+    }
+
+    const playerNameInput = document.createElement('input');
+    playerNameInput.placeholder = 'Player name';
+    root.appendChild(playerNameInput);
+
+    const addPlayerBtn = document.createElement('button');
+    addPlayerBtn.textContent = 'Add Player';
+    addPlayerBtn.addEventListener('click', () => {
+      const name = playerNameInput.value.trim();
+      if (!name) return;
+      draftPlayers.push({ name, color: null });
+      playerNameInput.value = '';
+      renderPlayerList();
+    });
+    root.appendChild(addPlayerBtn);
+
+    const saveListNameInput = document.createElement('input');
+    saveListNameInput.placeholder = 'List name (optional)';
+    root.appendChild(saveListNameInput);
+
+    const saveListBtn = document.createElement('button');
+    saveListBtn.textContent = 'Save Player List';
+    saveListBtn.addEventListener('click', () => {
+      if (draftPlayers.length === 0) return;
+      const name = saveListNameInput.value.trim() || 'Player List';
+      actions.savePlayerList(name, draftPlayers);
+      saveListNameInput.value = '';
+    });
+    root.appendChild(saveListBtn);
+
+    const continueBtn = document.createElement('button');
+    continueBtn.textContent = 'Continue';
+    continueBtn.disabled = true;
+    root.appendChild(continueBtn);
+
+    const origRenderPlayerList = renderPlayerList;
+    renderPlayerList = function () {
+      origRenderPlayerList();
+      continueBtn.disabled = draftPlayers.length < 2;
+    };
     renderPlayerList();
-  });
-  root.appendChild(addPlayerBtn);
 
-  const saveListNameInput = document.createElement('input');
-  saveListNameInput.placeholder = 'List name (optional)';
-  root.appendChild(saveListNameInput);
+    continueBtn.addEventListener('click', () => {
+      if (draftPlayers.length < 2) return;
+      gameName = nameInput.value.trim() || 'Game Night';
+      targetScore = targetScoreInput.value === '' ? null : Number(targetScoreInput.value);
+      step = 'confirm';
+      renderStep();
+    });
 
-  const saveListBtn = document.createElement('button');
-  saveListBtn.textContent = 'Save Player List';
-  saveListBtn.addEventListener('click', () => {
-    if (draftPlayers.length === 0) return;
-    const name = saveListNameInput.value.trim() || 'Player List';
-    actions.savePlayerList(name, draftPlayers);
-    saveListNameInput.value = '';
-  });
-  root.appendChild(saveListBtn);
+    const backBtn = document.createElement('button');
+    backBtn.textContent = 'Cancel';
+    backBtn.addEventListener('click', () => actions.goHome());
+    root.appendChild(backBtn);
+  }
 
-  const startBtn = document.createElement('button');
-  startBtn.textContent = 'Start Game';
-  startBtn.disabled = true;
-  root.appendChild(startBtn);
+  function renderConfirmStep() {
+    root.innerHTML = '';
+    renderHeader(root, {
+      title: gameName,
+      showBack: true,
+      onBack: () => { step = 'form'; renderStep(); }
+    });
 
-  const origRenderPlayerList = renderPlayerList;
-  renderPlayerList = function () {
-    origRenderPlayerList();
-    startBtn.disabled = draftPlayers.length < 2;
-  };
+    const modeLabel = document.createElement('p');
+    modeLabel.textContent = mode === 'normal' ? 'Normal (running total)' : 'Rounds (per-round table)';
+    root.appendChild(modeLabel);
 
-  startBtn.addEventListener('click', () => {
-    const name = nameInput.value.trim() || 'Game Night';
-    actions.startGame(name, mode, draftPlayers);
-  });
+    const playerCountLabel = document.createElement('p');
+    playerCountLabel.textContent = `${draftPlayers.length} players`;
+    root.appendChild(playerCountLabel);
 
-  const backBtn = document.createElement('button');
-  backBtn.textContent = 'Cancel';
-  backBtn.addEventListener('click', () => actions.goHome());
-  root.appendChild(backBtn);
+    const targetDisplay = document.createElement('div');
+    targetDisplay.className = 'keypad-display';
+    targetDisplay.textContent = targetScore === null ? 'No target set' : String(targetScore);
+    root.appendChild(targetDisplay);
+
+    const editBtn = document.createElement('button');
+    editBtn.textContent = 'Edit';
+    editBtn.addEventListener('click', () => { step = 'form'; renderStep(); });
+    root.appendChild(editBtn);
+
+    const startBtn = document.createElement('button');
+    startBtn.className = 'keypad-save';
+    startBtn.textContent = 'Start';
+    startBtn.addEventListener('click', () => {
+      actions.startGame(gameName, mode, draftPlayers, targetScore);
+    });
+    root.appendChild(startBtn);
+  }
+
+  renderStep();
 }
 
 function playerRoundInfo(game, playerId) {
@@ -519,6 +580,13 @@ export function renderActiveGameNormal(root, game, actions) {
       showChangeDealerModal(game, (playerId) => actions.setDealer(game.id, playerId));
     }
   });
+
+  if (game.targetScore !== null && game.targetScore !== undefined) {
+    const targetSubtitle = document.createElement('p');
+    targetSubtitle.className = 'keypad-total';
+    targetSubtitle.textContent = `Target: ${game.targetScore}`;
+    root.appendChild(targetSubtitle);
+  }
 
   const sortLabels = { original: 'Sort: Original', desc: 'Sort: High→Low', asc: 'Sort: Low→High' };
   let sortMode = 'original';

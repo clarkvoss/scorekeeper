@@ -13,7 +13,7 @@ function makeId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-export function createGame(db, name, mode) {
+export function createGame(db, name, mode, targetScore = null) {
   const game = {
     id: makeId(),
     name,
@@ -25,7 +25,8 @@ export function createGame(db, name, mode) {
     history: [],
     rounds: [],
     finished: false,
-    dealerId: null
+    dealerId: null,
+    targetScore
   };
   db.games.push(game);
   return game;

@@ -47,8 +47,8 @@ const actions = {
     persist();
     route();
   },
-  startGame: (name, mode, draftPlayers) => {
-    const game = createGame(db, name, mode);
+  startGame: (name, mode, draftPlayers, targetScore) => {
+    const game = createGame(db, name, mode, targetScore);
     for (const p of draftPlayers) {
       addPlayer(game, p.name, p.color);
     }
@@ -77,7 +77,7 @@ const actions = {
   },
   rematch: (gameId) => {
     const oldGame = findGame(gameId);
-    const newGame = createGame(db, oldGame.name, oldGame.mode);
+    const newGame = createGame(db, oldGame.name, oldGame.mode, oldGame.targetScore);
     for (const p of oldGame.players) {
       addPlayer(newGame, p.name, p.color);
     }
